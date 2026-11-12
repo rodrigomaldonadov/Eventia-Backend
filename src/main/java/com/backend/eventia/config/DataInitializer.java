@@ -34,12 +34,29 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @Configuration
 @RequiredArgsConstructor
 @Conditional(DataInitializer.SeedEnabledCondition.class)
 public class DataInitializer {
+
+    /** Banners por título: se guardan en la columna banner_url de la tabla events. */
+    private static final Map<String, String> BANNERS_BY_TITLE = Map.of(
+            "Illapu: 50 Años de Memoria",
+            "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?q=80&w=1200&auto=format&fit=crop",
+            "Sunsets Sessions Costa Verde",
+            "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?q=80&w=1200&auto=format&fit=crop",
+            "La Ciudad y los Perros (Adaptación)",
+            "https://images.unsplash.com/photo-1507676184212-d03ab07a01bf?q=80&w=1200&auto=format&fit=crop",
+            "Expo Sabor & Coctelería Andina",
+            "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?q=80&w=1200&auto=format&fit=crop",
+            "Trap & Latin Flow Live Tour",
+            "https://images.unsplash.com/photo-1459749411175-04bf5292ceea?q=80&w=1200&auto=format&fit=crop",
+            "Peru Tech Summit & Fintech 2025",
+            "https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=1200&auto=format&fit=crop"
+    );
 
     private final UserRepository userRepository;
     private final CategoryRepository categoryRepository;
@@ -65,6 +82,8 @@ public class DataInitializer {
                 log.info("[DataInitializer] Creando eventos y tipos de entrada de ejemplo");
                 seedCatalog();
             }
+
+            backfillEventBanners();
 
             if (orderRepository.count() == 0) {
                 seedPurchases();
@@ -121,19 +140,53 @@ public class DataInitializer {
         Category tecnologia = getOrCreateCategory("Tecnología & Startups", "Conferencias, hackathons, foros tecnológicos y networking.");
 
         saveEvent("Illapu: 50 Años de Memoria", "Concierto por los 50 años de Illapu",
-                LocalDate.of(2026, 11, 22), "Estadio Nacional, Lima", 45000, conciertos, organizer, 120.0);
+                LocalDate.of(2026, 11, 22), "Estadio Nacional, Lima", 45000, conciertos, organizer, 120.0,
+                "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?q=80&w=1200&auto=format&fit=crop");
         saveEvent("Sunsets Sessions Costa Verde", "Festival al atardecer frente al mar",
-                LocalDate.of(2026, 12, 6), "Arena 1, San Miguel", 12000, festivales, organizer, 85.0);
+                LocalDate.of(2026, 12, 6), "Arena 1, San Miguel", 12000, festivales, organizer, 85.0,
+                "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?q=80&w=1200&auto=format&fit=crop");
         saveEvent("La Ciudad y los Perros (Adaptación)", "Adaptación teatral de la novela",
-                LocalDate.of(2026, 11, 28), "Teatro Peruano Japonés", 800, teatro, organizer, 60.0);
+                LocalDate.of(2026, 11, 28), "Teatro Peruano Japonés", 800, teatro, organizer, 60.0,
+                "https://images.unsplash.com/photo-1507676184212-d03ab07a01bf?q=80&w=1200&auto=format&fit=crop");
         saveEvent("Expo Sabor & Coctelería Andina", "Feria gastronómica con coctelería andina",
-                LocalDate.of(2026, 12, 14), "Jockey Club del Perú", 5000, gastronomia, organizer, 45.0);
+                LocalDate.of(2026, 12, 14), "Jockey Club del Perú", 5000, gastronomia, organizer, 45.0,
+                "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?q=80&w=1200&auto=format&fit=crop");
         saveEvent("Trap & Latin Flow Live Tour", "Gira de trap y latin flow",
-                LocalDate.of(2027, 1, 18), "Arena 1, Costa Verde", 15000, conciertos, organizer, 140.0);
+                LocalDate.of(2027, 1, 18), "Arena 1, Costa Verde", 15000, conciertos, organizer, 140.0,
+                "https://images.unsplash.com/photo-1459749411175-04bf5292ceea?q=80&w=1200&auto=format&fit=crop");
         saveEvent("Peru Tech Summit & Fintech 2025", "Cumbre de tecnología y fintech",
-                LocalDate.of(2027, 1, 25), "Centro de Convenciones 27 de Enero", 3000, tecnologia, organizer, 210.0);
+                LocalDate.of(2027, 1, 25), "Centro de Convenciones 27 de Enero", 3000, tecnologia, organizer, 210.0,
+                "https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=1200&auto=format&fit=crop");
 
         log.info("[DataInitializer] Eventos de ejemplo creados correctamente");
+    }
+
+    /**
+     * Las bases de datos ya sembradas no tienen banners. Este metodo completa
+     * la columna banner_url de los eventos existentes sin duplicarlos.
+     */
+    private void backfillEventBanners() {
+        List<Event> events = eventRepository.findAll();
+        int updated = 0;
+
+        for (Event event : events) {
+            if (event.getBannerUrl() != null && !event.getBannerUrl().isBlank()) {
+                continue;
+            }
+
+            String bannerUrl = BANNERS_BY_TITLE.get(event.getTitle());
+            if (bannerUrl == null) {
+                continue;
+            }
+
+            event.setBannerUrl(bannerUrl);
+            eventRepository.save(event);
+            updated++;
+        }
+
+        if (updated > 0) {
+            log.info("[DataInitializer] Banners agregados a {} eventos existentes", updated);
+        }
     }
 
     private void seedPurchases() {
@@ -203,7 +256,7 @@ public class DataInitializer {
     }
 
     private void saveEvent(String title, String description, LocalDate date, String location,
-                           int capacity, Category category, User organizer, double price) {
+                           int capacity, Category category, User organizer, double price, String bannerUrl) {
         Event event = eventRepository.save(Event.builder()
                 .title(title)
                 .description(description)
@@ -212,6 +265,7 @@ public class DataInitializer {
                 .endTime(LocalTime.of(23, 0))
                 .location(location)
                 .capacity(capacity)
+                .bannerUrl(bannerUrl)
                 .status(EventStatus.PUBLISHED)
                 .active(true)
                 .category(category)

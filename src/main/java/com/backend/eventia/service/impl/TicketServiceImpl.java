@@ -2,6 +2,7 @@ package com.backend.eventia.service.impl;
 
 import com.backend.eventia.dto.order.OrderRequestDto;
 import com.backend.eventia.dto.order.OrderResponseDto;
+import com.backend.eventia.dto.ticket.NominateTicketRequestDto;
 import com.backend.eventia.dto.ticket.TicketResponseDto;
 import com.backend.eventia.exception.ResourceNotFoundException;
 import com.backend.eventia.model.*;
@@ -15,12 +16,14 @@ import com.backend.eventia.repository.UserRepository;
 import com.backend.eventia.service.TicketService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.text.Normalizer;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.*;
 
 @Slf4j
@@ -34,8 +37,6 @@ public class TicketServiceImpl implements TicketService {
     private final TicketRepository ticketRepository;
 
     private static final int MAX_TICKETS_PER_ORDER = 10;
-    private static final double PROMO_DISCOUNT_PCT = 15.0;
-
 
     @Override
     @Transactional
@@ -74,8 +75,8 @@ public class TicketServiceImpl implements TicketService {
             lockedTicketTypes.add(ticketType);
         }
 
-        boolean promo = isPromoUser(user);
-        double discountPct = promo ? PROMO_DISCOUNT_PCT : 0.0;
+        // Integrante 6: Eliminado el descuento por nombre según requerimiento
+        double discountPct = 0.0;
 
         Order order = Order.builder()
                 .user(user)
@@ -87,6 +88,10 @@ public class TicketServiceImpl implements TicketService {
 
         double totalSubtotal = 0.0;
         double totalDiscount = 0.0;
+
+        String buyerFullName = (user.getFirstName() + (user.getLastName() != null ? " " + user.getLastName() : ""))
+                .trim();
+        String buyerDni = user.getDni();
 
         for (int i = 0; i < sortedItems.size(); i++) {
             OrderRequestDto.Item item = sortedItems.get(i);
@@ -109,10 +114,37 @@ public class TicketServiceImpl implements TicketService {
                     .build();
 
             for (int n = 0; n < item.quantity(); n++) {
+                String attendeeNombre = null;
+                String attendeeDni = null;
+
+                if (item.attendees() != null && n < item.attendees().size()) {
+                    OrderRequestDto.Item.Attendee attendee = item.attendees().get(n);
+                    if (attendee != null) {
+                        attendeeNombre = attendee.nombre();
+                        attendeeDni = attendee.dni();
+                    }
+                } else if (n == 0) {
+                    attendeeNombre = item.nombre();
+                    attendeeDni = item.dni();
+                }
+
+                if (attendeeNombre == null || attendeeNombre.isBlank()) {
+                    attendeeNombre = buyerFullName;
+                }
+                if (attendeeDni == null || attendeeDni.isBlank()) {
+                    attendeeDni = buyerDni;
+                }
+
+                String qrCode = UUID.randomUUID().toString();
+
                 Ticket ticket = Ticket.builder()
                         .orderDetail(detail)
                         .status(TicketStatus.VALID)
+                        .nombre(attendeeNombre)
+                        .dni(attendeeDni)
+                        .qrCode(qrCode)
                         .build();
+
                 detail.getTickets().add(ticket);
             }
 
@@ -143,6 +175,36 @@ public class TicketServiceImpl implements TicketService {
                 .toList();
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public Page<OrderResponseDto> findOrders(OrderStatus status, LocalDate fromDate, LocalDate toDate,
+            Pageable pageable) {
+        LocalDateTime fromDateTime = fromDate != null ? fromDate.atStartOfDay() : null;
+        LocalDateTime toDateTime = toDate != null ? toDate.atTime(LocalTime.MAX) : null;
+        return orderRepository.findAllFiltered(status, fromDateTime, toDateTime, pageable)
+                .map(this::toOrderDto);
+    }
+
+    @Override
+    @Transactional
+    public TicketResponseDto nominate(Long ticketId, NominateTicketRequestDto request, String userEmail) {
+        Ticket ticket = ticketRepository.findById(ticketId)
+                .orElseThrow(() -> new ResourceNotFoundException("No se encontró la entrada con id: " + ticketId));
+
+        User user = getUserOrThrow(userEmail);
+        boolean isOwner = ticket.getOrderDetail().getOrder().getUser().getId().equals(user.getId());
+        boolean isStaff = user.getRole() != null && !user.getRole().name().equals("CLIENT");
+        if (!isOwner && !isStaff) {
+            throw new IllegalArgumentException("No tiene permisos para nominar esta entrada");
+        }
+
+        ticket.setNombre(request.nombre());
+        ticket.setDni(request.dni());
+        Ticket saved = ticketRepository.save(ticket);
+        log.info("[Ticket] Entrada id={} nominada a nombre='{}', dni='{}'", saved.getId(), saved.getNombre(),
+                saved.getDni());
+        return toTicketDto(saved);
+    }
 
     // --------
     // Helpers
@@ -203,24 +265,6 @@ public class TicketServiceImpl implements TicketService {
         }
     }
 
-    private boolean isPromoUser(User user) {
-        String firstName = normalizeFirstName(user.getFirstName());
-        return "roberto".equals(firstName) || "geronimo".equals(firstName);
-    }
-
-    private String normalizeFirstName(String value) {
-        if (value == null || value.isBlank()) {
-            return "";
-        }
-
-        String normalized = Normalizer.normalize(value, Normalizer.Form.NFD)
-                .replaceAll("\\p{M}", "")
-                .trim()
-                .toLowerCase(Locale.ROOT);
-
-        return normalized.split("\\s+")[0];
-    }
-
     private User getUserOrThrow(String email) {
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException(
@@ -270,9 +314,10 @@ public class TicketServiceImpl implements TicketService {
                 ticketType.getName(),
                 LocalDateTime.of(event.getDate(), event.getStartTime()),
                 event.getLocation(),
-                ticket.getStatus()
+                ticket.getStatus(),
+                ticket.getNombre(),
+                ticket.getDni(),
+                ticket.getQrCode()
         );
     }
-
-
 }

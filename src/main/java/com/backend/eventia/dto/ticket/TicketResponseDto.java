@@ -12,6 +12,9 @@ public record TicketResponseDto(
         String ticketType,
         LocalDateTime eventDate,
         String venue,
-        TicketStatus status
+        TicketStatus status,
+        String nombre,
+        String dni,
+        String qrCode
 ) {
 }

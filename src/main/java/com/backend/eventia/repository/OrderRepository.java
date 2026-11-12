@@ -57,4 +57,21 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             @Param("active") Boolean active,
             Pageable pageable
     );
+
+    @Query(value = """
+                    SELECT o FROM Order o
+                    WHERE (:status IS NULL OR o.paymentStatus = :status)
+                      AND (:fromDate IS NULL OR o.createdAt >= :fromDate)
+                      AND (:toDate IS NULL OR o.createdAt <= :toDate)
+                    """, countQuery = """
+                    SELECT COUNT(o) FROM Order o
+                    WHERE (:status IS NULL OR o.paymentStatus = :status)
+                      AND (:fromDate IS NULL OR o.createdAt >= :fromDate)
+                      AND (:toDate IS NULL OR o.createdAt <= :toDate)
+                    """)
+    Page<Order> findAllFiltered(
+                    @Param("status") com.backend.eventia.model.enums.OrderStatus status,
+                    @Param("fromDate") java.time.LocalDateTime fromDate,
+                    @Param("toDate") java.time.LocalDateTime toDate,
+                    Pageable pageable);
 }

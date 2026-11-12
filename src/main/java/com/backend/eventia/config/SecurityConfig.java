@@ -62,7 +62,9 @@ public class SecurityConfig {
 
                     // Órdenes y tickets del usuario autenticado
                     http.requestMatchers(HttpMethod.POST, "/api/orders").authenticated();
+                    http.requestMatchers(HttpMethod.GET, "/api/orders").authenticated();
                     http.requestMatchers(HttpMethod.GET, "/api/tickets/my").authenticated();
+                    http.requestMatchers(HttpMethod.PATCH, "/api/tickets/*/nominate").authenticated();
 
                     // Escritura de eventos
                     http.requestMatchers(HttpMethod.POST, "/api/events")

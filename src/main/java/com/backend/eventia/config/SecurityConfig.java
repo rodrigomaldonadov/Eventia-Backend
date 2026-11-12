@@ -48,7 +48,8 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(http -> {
                     // Endpoints públicos
-                    http.requestMatchers("/auth/login", "/auth/register", "/auth/reactivate").permitAll();
+                    http.requestMatchers("/auth/login", "/auth/register", "/auth/reactivate",
+                            "/auth/forgot-password", "/auth/reset-password").permitAll();
                     http.requestMatchers("/error").permitAll();
                     http.requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll();
                     if (isDevProfileActive()) {

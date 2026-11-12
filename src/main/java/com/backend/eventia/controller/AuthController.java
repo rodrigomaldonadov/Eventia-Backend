@@ -2,9 +2,12 @@ package com.backend.eventia.controller;
 
 import com.backend.eventia.dto.auth.AuthResponseDto;
 import com.backend.eventia.dto.auth.AuthUserResponseDto;
+import com.backend.eventia.dto.auth.ForgotPasswordRequestDto;
+import com.backend.eventia.dto.auth.ForgotPasswordResponseDto;
 import com.backend.eventia.dto.auth.LoginRequestDto;
 import com.backend.eventia.dto.auth.RegisterRequestDto;
 import com.backend.eventia.dto.auth.ReactivateRequestDto;
+import com.backend.eventia.dto.auth.ResetPasswordRequestDto;
 import com.backend.eventia.service.AuthService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -56,6 +59,20 @@ public class AuthController {
     @PostMapping("/reactivate")
     public ResponseEntity<AuthResponseDto> reactivate(@Valid @RequestBody ReactivateRequestDto request) {
         return ResponseEntity.ok(authService.reactivate(request));
+    }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<ForgotPasswordResponseDto> forgotPassword(
+            @Valid @RequestBody ForgotPasswordRequestDto request) {
+        log.info("[AuthController] POST /auth/forgot-password recibido (email={})", request.email());
+        return ResponseEntity.ok(authService.requestPasswordReset(request));
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<Void> resetPassword(@Valid @RequestBody ResetPasswordRequestDto request) {
+        log.info("[AuthController] POST /auth/reset-password recibido (email={})", request.email());
+        authService.resetPassword(request);
+        return ResponseEntity.noContent().build();
     }
 
     private String getClientIp(HttpServletRequest request) {

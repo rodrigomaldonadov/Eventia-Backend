@@ -3,9 +3,12 @@ package com.backend.eventia.service.impl;
 import com.backend.eventia.dto.auth.AuthResponseDto;
 import com.backend.eventia.dto.auth.AuthUserResponseDto;
 import com.backend.eventia.dto.auth.AuthUserSummaryDto;
+import com.backend.eventia.dto.auth.ForgotPasswordRequestDto;
+import com.backend.eventia.dto.auth.ForgotPasswordResponseDto;
 import com.backend.eventia.dto.auth.LoginRequestDto;
 import com.backend.eventia.dto.auth.RegisterRequestDto;
 import com.backend.eventia.dto.auth.ReactivateRequestDto;
+import com.backend.eventia.dto.auth.ResetPasswordRequestDto;
 import com.backend.eventia.exception.DuplicateResourceException;
 import com.backend.eventia.exception.ResourceNotFoundException;
 import com.backend.eventia.model.User;
@@ -22,16 +25,29 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.security.SecureRandom;
+import java.time.LocalDateTime;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
+
+    private static final int RESET_CODE_TTL_MINUTES = 10;
+    private static final SecureRandom RANDOM = new SecureRandom();
 
     private final AuthenticationManager authenticationManager;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtils jwtUtils;
 
+    /** Códigos de recuperación en memoria: email -> código con vencimiento. */
+    private final Map<String, ResetCode> resetCodes = new ConcurrentHashMap<>();
+
+    private record ResetCode(String code, LocalDateTime expiresAt) {
+    }
 
     @Override
     public AuthResponseDto login(LoginRequestDto request) {
@@ -144,7 +160,6 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional(readOnly = true)
     public AuthUserResponseDto getCurrentUser(String email) {
-
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "No se encontro el usuario autenticado con el correo: " + email));
@@ -161,5 +176,52 @@ public class AuthServiceImpl implements AuthService {
                 user.getDni(),
                 user.getCellphone()
         );
+    }
+
+    @Override
+    public ForgotPasswordResponseDto requestPasswordReset(ForgotPasswordRequestDto request) {
+        String email = request.email().trim().toLowerCase();
+
+        userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "No existe una cuenta registrada con el correo: " + email));
+
+        String code = String.format("%06d", RANDOM.nextInt(1_000_000));
+        resetCodes.put(email, new ResetCode(code, LocalDateTime.now().plusMinutes(RESET_CODE_TTL_MINUTES)));
+
+        log.info("[Auth] Código de recuperación generado para: {} (vence en {} min)", email, RESET_CODE_TTL_MINUTES);
+
+        return new ForgotPasswordResponseDto(
+                email,
+                code,
+                RESET_CODE_TTL_MINUTES,
+                "Código de recuperación generado. Vence en " + RESET_CODE_TTL_MINUTES + " minutos."
+        );
+    }
+
+    @Override
+    @Transactional
+    public void resetPassword(ResetPasswordRequestDto request) {
+        String email = request.email().trim().toLowerCase();
+        String code = request.code().trim();
+
+        ResetCode stored = resetCodes.get(email);
+        boolean expired = stored == null || stored.expiresAt().isBefore(LocalDateTime.now());
+        boolean wrongCode = stored != null && !stored.code().equals(code);
+
+        if (expired || wrongCode) {
+            resetCodes.remove(email);
+            throw new IllegalArgumentException("El código de recuperación es inválido o ha vencido.");
+        }
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "No existe una cuenta registrada con el correo: " + email));
+
+        user.setPassword(passwordEncoder.encode(request.newPassword()));
+        userRepository.save(user);
+        resetCodes.remove(email);
+
+        log.info("[Auth] Contraseña restablecida para: {} (id={})", email, user.getId());
     }
 }

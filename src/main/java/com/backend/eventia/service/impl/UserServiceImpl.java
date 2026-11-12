@@ -58,6 +58,18 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional
+    public void changePassword(String email, String newPassword) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "No se encontró el usuario con el correo: " + email));
+
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+        log.info("[User] Contraseña actualizada id={} email='{}'", user.getId(), user.getEmail());
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public Page<OrganizerCustomerResponseDto> findCustomers(String organizerEmail, String q, Boolean active,
                                                             int page, int size) {

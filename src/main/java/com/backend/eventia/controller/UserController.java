@@ -1,5 +1,6 @@
 package com.backend.eventia.controller;
 
+import com.backend.eventia.dto.user.ChangePasswordRequestDto;
 import com.backend.eventia.dto.user.DeactivateAccountRequestDto;
 import com.backend.eventia.dto.user.OrganizerCustomerResponseDto;
 import com.backend.eventia.service.UserService;
@@ -37,6 +38,17 @@ public class UserController {
         log.debug("[UserController] GET /api/users - organizador='{}' q='{}' active={} page={} size={}",
                 authentication.getName(), q, active, page, size);
         return ResponseEntity.ok(userService.findCustomers(authentication.getName(), q, active, page, size));
+    }
+
+    @PatchMapping("/me/password")
+    @PreAuthorize("hasAnyRole('USER', 'ORGANIZER')")
+    public ResponseEntity<Void> changePassword(
+            Authentication authentication,
+            @Valid @RequestBody ChangePasswordRequestDto request
+    ) {
+        log.info("[UserController] PATCH /api/users/me/password - usuario='{}'", authentication.getName());
+        userService.changePassword(authentication.getName(), request.newPassword());
+        return ResponseEntity.noContent().build();
     }
 
     @PatchMapping("/me/deactivate")

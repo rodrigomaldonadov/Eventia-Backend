@@ -8,6 +8,8 @@ public interface UserService {
 
     void deactivateAccount(String email, String password);
 
+    void changePassword(String email, String newPassword);
+
     User reactivateUser(User user);
 
     Page<OrganizerCustomerResponseDto> findCustomers(String organizerEmail, String q, Boolean active,

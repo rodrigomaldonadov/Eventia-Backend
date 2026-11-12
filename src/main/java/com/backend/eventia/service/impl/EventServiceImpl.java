@@ -3,10 +3,13 @@ package com.backend.eventia.service.impl;
 import com.backend.eventia.dto.event.EventDetailResponseDto;
 import com.backend.eventia.dto.event.EventRequestDto;
 import com.backend.eventia.dto.event.EventSummaryResponseDto;
+import com.backend.eventia.dto.tickettype.ValidateTicketsRequestDto;
+import com.backend.eventia.dto.tickettype.ValidateTicketsResponseDto;
 import com.backend.eventia.exception.DuplicateResourceException;
 import com.backend.eventia.exception.ResourceNotFoundException;
 import com.backend.eventia.model.Category;
 import com.backend.eventia.model.Event;
+import com.backend.eventia.model.TicketType;
 import com.backend.eventia.model.User;
 import com.backend.eventia.model.enums.EventStatus;
 import com.backend.eventia.model.enums.UserRole;
@@ -195,6 +198,38 @@ public class EventServiceImpl implements EventService {
         event.setActive(active);
         eventRepository.save(event);
         log.info("[Event] Visibilidad activa de evento actualizada id={} active={}", event.getId(), event.isActive());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ValidateTicketsResponseDto validateTickets(Long eventId, ValidateTicketsRequestDto request) {
+        log.debug("[Event] validateTickets(eventId={}, items={})", eventId, request.items().size());
+
+        getEventOrThrow(eventId);
+
+        Map<Long, TicketType> ticketsById = ticketTypeRepository.findByEventId(eventId).stream()
+                .collect(Collectors.toMap(TicketType::getId, ticketType -> ticketType));
+
+        double subtotal = 0;
+        int totalTickets = 0;
+
+        for (ValidateTicketsRequestDto.Item item : request.items()) {
+            TicketType ticketType = ticketsById.get(item.ticketId());
+            if (ticketType == null || !ticketType.isActive()) {
+                return new ValidateTicketsResponseDto(false, eventId, 0, 0,
+                        "La tarifa seleccionada no está disponible para este evento.");
+            }
+            if (item.quantity() > ticketType.getAvailableCapacity()) {
+                return new ValidateTicketsResponseDto(false, eventId, 0, 0,
+                        "No hay suficiente disponibilidad para la entrada \"" + ticketType.getName() + "\".");
+            }
+
+            subtotal += ticketType.getPrice() * item.quantity();
+            totalTickets += item.quantity();
+        }
+
+        subtotal = Math.round(subtotal * 100) / 100.0;
+        return new ValidateTicketsResponseDto(true, eventId, subtotal, totalTickets, null);
     }
 
     // --------

@@ -218,12 +218,22 @@ public class DataInitializer {
                 .organizer(organizer)
                 .build());
 
-        // Un tipo de entrada por evento, con algo de stock vendido (para el % vendido)
+        // Varias tarifas por evento para que el detalle muestre opciones reales
+        int generalCapacity = (int) Math.round(capacity * 0.50);
+        int preferentialCapacity = (int) Math.round(capacity * 0.30);
+        int vipCapacity = capacity - generalCapacity - preferentialCapacity;
+
+        saveTicketType(event, "General", price, generalCapacity, 0.75);
+        saveTicketType(event, "Preferencial", Math.round(price * 1.6 * 100) / 100.0, preferentialCapacity, 0.85);
+        saveTicketType(event, "VIP", Math.round(price * 2.4 * 100) / 100.0, vipCapacity, 0.90);
+    }
+
+    private void saveTicketType(Event event, String name, double price, int totalCapacity, double availableRatio) {
         ticketTypeRepository.save(TicketType.builder()
-                .name("General")
+                .name(name)
                 .price(price)
-                .totalCapacity(capacity)
-                .availableCapacity((int) (capacity * 0.3))
+                .totalCapacity(totalCapacity)
+                .availableCapacity((int) Math.round(totalCapacity * availableRatio))
                 .maxPerPurchase(TicketType.DEFAULT_MAX_PER_PURCHASE)
                 .active(true)
                 .event(event)

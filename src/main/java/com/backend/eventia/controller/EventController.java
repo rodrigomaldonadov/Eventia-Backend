@@ -3,6 +3,8 @@ package com.backend.eventia.controller;
 import com.backend.eventia.dto.event.EventDetailResponseDto;
 import com.backend.eventia.dto.event.EventRequestDto;
 import com.backend.eventia.dto.event.EventSummaryResponseDto;
+import com.backend.eventia.dto.tickettype.ValidateTicketsRequestDto;
+import com.backend.eventia.dto.tickettype.ValidateTicketsResponseDto;
 import com.backend.eventia.model.enums.EventStatus;
 import com.backend.eventia.service.EventService;
 import jakarta.validation.Valid;
@@ -111,5 +113,17 @@ public class EventController {
 
         eventService.updateActive(id, active, authentication.getName());
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{id}/validate-tickets")
+    public ResponseEntity<ValidateTicketsResponseDto> validateTickets(
+            @PathVariable Long id,
+            @RequestBody @Valid ValidateTicketsRequestDto request,
+            Authentication authentication
+    ) {
+        log.debug("[EventController] POST /api/events/{}/validate-tickets - usuario='{}', items={}",
+                id, authentication.getName(), request.items().size());
+
+        return ResponseEntity.ok(eventService.validateTickets(id, request));
     }
 }

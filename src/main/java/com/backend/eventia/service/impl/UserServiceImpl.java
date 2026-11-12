@@ -86,6 +86,23 @@ public class UserServiceImpl implements UserService {
         log.info("[UserService] Contraseña cambiada exitosamente para usuario id={}", user.getId());
     }
 
+    @Override
+    @Transactional
+    public void deactivateAccount(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "No se encontró el usuario con el correo: " + email));
+
+        if (!user.isActive()) {
+            log.warn("[UserService] Usuario id={} ya está inactivo", user.getId());
+            return;
+        }
+
+        user.setActive(false);
+        userRepository.save(user);
+        log.info("[UserService] Cuenta desactivada lógicamente para usuario id={} email={}", user.getId(), user.getEmail());
+    }
+
     private UserResponseDto mapToDto(User user) {
         return new UserResponseDto(
                 user.getId(),

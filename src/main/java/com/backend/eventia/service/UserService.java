@@ -25,4 +25,9 @@ public interface UserService {
      * Valida que la contraseña actual coincida antes de aplicar el cambio.
      */
     void changePassword(String email, UserPasswordChangeDto request);
+
+    /**
+     * Desactiva lógicamente la cuenta del usuario autenticado (borrado lógico).
+     */
+    void deactivateAccount(String email);
 }

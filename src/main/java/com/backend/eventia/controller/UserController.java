@@ -64,6 +64,18 @@ public class UserController {
         return ResponseEntity.noContent().build();
     }
 
+    /**
+     * Desactiva lógicamente la cuenta del usuario autenticado (baja lógica).
+     * Endpoint: PATCH /api/users/me/deactivate
+     */
+    @PatchMapping("/deactivate")
+    public ResponseEntity<Void> deactivateAccount(Authentication authentication) {
+        String email = authentication.getName();
+        log.info("[UserController] PATCH /api/users/me/deactivate - desactivando usuario='{}'", email);
+        userService.deactivateAccount(email);
+        return ResponseEntity.noContent().build();
+    }
+
     @org.springframework.web.bind.annotation.ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Map<String, String>> handleIllegalArgument(IllegalArgumentException ex) {
         Map<String, String> error = new HashMap<>();

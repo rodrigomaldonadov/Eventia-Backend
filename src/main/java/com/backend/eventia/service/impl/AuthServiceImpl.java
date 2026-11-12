@@ -5,6 +5,7 @@ import com.backend.eventia.dto.auth.AuthUserResponseDto;
 import com.backend.eventia.dto.auth.AuthUserSummaryDto;
 import com.backend.eventia.dto.auth.LoginRequestDto;
 import com.backend.eventia.dto.auth.RegisterRequestDto;
+import com.backend.eventia.dto.auth.ReactivateRequestDto;
 import com.backend.eventia.exception.DuplicateResourceException;
 import com.backend.eventia.exception.ResourceNotFoundException;
 import com.backend.eventia.model.User;
@@ -15,6 +16,7 @@ import com.backend.eventia.service.AuthService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -47,12 +49,28 @@ public class AuthServiceImpl implements AuthService {
 
         String token = jwtUtils.generateToken(user);
 
-        // Solo con fines académicos: se registra el token completo para la sustentación.
-        log.info("[JWT] Token generado para {} | role={} | userId={} | expira={} | token={}",
-                email, user.getRole().name(), user.getId(),
-                java.time.Instant.now().plusSeconds(jwtUtils.getExpirationInSeconds()), token);
         log.info("[Auth] LOGIN exitoso para: {}", email);
         return buildAuthResponse(token, user);
+    }
+
+    @Override
+    @Transactional
+    public AuthResponseDto reactivate(ReactivateRequestDto request) {
+        String email = request.email().trim().toLowerCase();
+        String dni = request.dni().trim();
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new BadCredentialsException("Datos de reactivación inválidos"));
+
+        if (user.isActive() || !user.getDni().equals(dni)) {
+            throw new BadCredentialsException("Datos de reactivación inválidos");
+        }
+
+        user.setActive(true);
+        user.setDeactivatedAt(null);
+        User reactivated = userRepository.save(user);
+        String token = jwtUtils.generateToken(reactivated);
+        log.info("[Auth] Cuenta reactivada para: {}", email);
+        return buildAuthResponse(token, reactivated);
     }
 
     @Override

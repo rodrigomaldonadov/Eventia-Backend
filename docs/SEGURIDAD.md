@@ -11,6 +11,7 @@ Fuente: reglas de `SecurityConfig`, anotaciones `@PreAuthorize` de los controlad
 |---|---|---|
 | `/auth/register` | POST | Público |
 | `/auth/login` | POST | Público |
+| `/auth/reactivate` | POST | Público (correo + DNI de cuenta inactiva) |
 | `/auth/me` | GET | Autenticado |
 | `/api/categories` | GET | Público |
 | `/api/categories/{id}` | GET | Público |
@@ -34,3 +35,13 @@ Fuente: reglas de `SecurityConfig`, anotaciones `@PreAuthorize` de los controlad
 - Las escrituras de eventos y tipos de entrada aplican defensa en profundidad: primero la regla de rol y después la validación de ownership del servicio.
 - Los rechazos de autenticación y autorización se devuelven como JSON (`401` y `403`) mediante `JwtAuthenticationEntryPoint` y `JwtAccessDeniedHandler`.
 - `/h2-console/**` es público únicamente con el perfil `dev`; no forma parte de la API de negocio.
+
+## Protección de credenciales y sesión
+
+- Las contraseñas se almacenan usando `BCryptPasswordEncoder`; nunca se persisten en texto plano.
+- El backend entrega un JWT de sesión. La aplicación Android debe almacenarlo exclusivamente en
+  `SecureStore` y enviarlo como `Authorization: Bearer <token>`.
+- El secreto JWT no tiene un valor por defecto en la configuración: debe proporcionarse mediante
+  `JWT_SECRET` y tener al menos 32 bytes codificados en Base64.
+- HTTPS queda pendiente para el entorno de despliegue; la URL HTTP de emulador (`10.0.2.2:8080`)
+  es únicamente para desarrollo local.

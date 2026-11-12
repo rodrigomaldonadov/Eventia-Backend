@@ -4,6 +4,7 @@ import com.backend.eventia.dto.auth.AuthResponseDto;
 import com.backend.eventia.dto.auth.AuthUserResponseDto;
 import com.backend.eventia.dto.auth.LoginRequestDto;
 import com.backend.eventia.dto.auth.RegisterRequestDto;
+import com.backend.eventia.dto.auth.ReactivateRequestDto;
 import com.backend.eventia.service.AuthService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -49,6 +50,12 @@ public class AuthController {
                     request.email(), getClientIp(httpRequest));
             throw ex;
         }
+
+    }
+
+    @PostMapping("/reactivate")
+    public ResponseEntity<AuthResponseDto> reactivate(@Valid @RequestBody ReactivateRequestDto request) {
+        return ResponseEntity.ok(authService.reactivate(request));
     }
 
     private String getClientIp(HttpServletRequest request) {

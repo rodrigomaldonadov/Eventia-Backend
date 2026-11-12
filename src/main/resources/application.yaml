@@ -26,8 +26,7 @@ spring:
 
 security:
   jwt:
-    # Valor por defecto solo para desarrollo. En producción define JWT_SECRET.
-    key-private: ${JWT_SECRET:964ffdb5e95797ad2be8a036924d97a1df90a004b69e25093959be7d5104601b}
+    key-private: ${JWT_SECRET}
     expiration: ${JWT_EXPIRATION_MS:86400000}
 
 logging:

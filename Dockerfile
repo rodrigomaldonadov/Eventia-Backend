@@ -9,6 +9,7 @@ COPY .mvn .mvn
 COPY pom.xml .
 
 # Damos permisos de ejecución al wrapper y descargamos dependencias
+RUN chmod +x ./mvnw
 COPY src src
 RUN ./mvnw clean package -DskipTests
 

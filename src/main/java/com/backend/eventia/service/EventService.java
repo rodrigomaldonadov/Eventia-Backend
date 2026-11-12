@@ -7,10 +7,24 @@ import com.backend.eventia.model.enums.EventStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
+import java.time.LocalDate;
 
 public interface EventService {
 
     Page<EventSummaryResponseDto> findAll(boolean includeInactive, Pageable pageable);
+
+    /**
+     * Búsqueda del catálogo con filtros opcionales (Integrante 4 · RF-04).
+     * Filtros: q, categoryId, dateFrom, dateTo, city.
+     */
+    Page<EventSummaryResponseDto> findWithFilters(
+            String q,
+            Long categoryId,
+            LocalDate dateFrom,
+            LocalDate dateTo,
+            String city,
+            Pageable pageable
+    );
 
     EventDetailResponseDto findById(Long id);
 

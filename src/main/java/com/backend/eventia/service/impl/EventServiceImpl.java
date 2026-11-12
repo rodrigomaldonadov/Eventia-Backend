@@ -56,6 +56,27 @@ public class EventServiceImpl implements EventService {
 
     @Override
     @Transactional(readOnly = true)
+    public Page<EventSummaryResponseDto> findWithFilters(
+            String q,
+            Long categoryId,
+            LocalDate dateFrom,
+            LocalDate dateTo,
+            String city,
+            Pageable pageable
+    ) {
+        log.debug("[Event] findWithFilters(q='{}', categoryId={}, dateFrom={}, dateTo={}, city='{}', page={}, size={})",
+                q, categoryId, dateFrom, dateTo, city, pageable.getPageNumber(), pageable.getPageSize());
+
+        Page<Event> events = eventRepository.findWithFilters(
+                q, categoryId, dateFrom, dateTo, city, pageable
+        );
+
+        log.debug("[Event] findWithFilters -> {} eventos encontrados", events.getNumberOfElements());
+        return events.map(this::toSummaryDto);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public Page<EventSummaryResponseDto> findByOrganizer(String organizerEmail, boolean includeInactive, Pageable pageable) {
         log.debug("[Event] findByOrganizer(organizerEmail='{}', includeInactive={}, page={}, size={})",
                 organizerEmail, includeInactive, pageable.getPageNumber(), pageable.getPageSize());

@@ -60,16 +60,19 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
     @Query(value = """
                     SELECT o FROM Order o
-                    WHERE (:status IS NULL OR o.paymentStatus = :status)
+                    WHERE o.user.email = :userEmail
+                      AND (:status IS NULL OR o.paymentStatus = :status)
                       AND (:fromDate IS NULL OR o.createdAt >= :fromDate)
                       AND (:toDate IS NULL OR o.createdAt <= :toDate)
                     """, countQuery = """
                     SELECT COUNT(o) FROM Order o
-                    WHERE (:status IS NULL OR o.paymentStatus = :status)
+                    WHERE o.user.email = :userEmail
+                      AND (:status IS NULL OR o.paymentStatus = :status)
                       AND (:fromDate IS NULL OR o.createdAt >= :fromDate)
                       AND (:toDate IS NULL OR o.createdAt <= :toDate)
                     """)
-    Page<Order> findAllFiltered(
+    Page<Order> findAllFilteredByUser(
+                    @Param("userEmail") String userEmail,
                     @Param("status") com.backend.eventia.model.enums.OrderStatus status,
                     @Param("fromDate") java.time.LocalDateTime fromDate,
                     @Param("toDate") java.time.LocalDateTime toDate,

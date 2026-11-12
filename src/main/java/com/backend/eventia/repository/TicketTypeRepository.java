@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -42,4 +43,17 @@ public interface TicketTypeRepository extends JpaRepository<TicketType, Long> {
             @Param("eventId") Long eventId,
             @Param("excludeId") Long excludeId
     );
+
+    /**
+     * Disponibilidad total y precio mínimo por evento, para el listado del catálogo.
+     * Devuelve filas [eventId, entradasDisponibles, precioMinimo].
+     */
+    @Query("""
+            SELECT t.event.id, COALESCE(SUM(t.availableCapacity), 0), MIN(t.price)
+            FROM TicketType t
+            WHERE t.event.id IN :eventIds
+              AND t.active = true
+            GROUP BY t.event.id
+            """)
+    List<Object[]> summarizeAvailabilityByEventIds(@Param("eventIds") Collection<Long> eventIds);
 }

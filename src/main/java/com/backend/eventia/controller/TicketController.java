@@ -43,10 +43,11 @@ public class TicketController {
             @RequestParam(required = false) OrderStatus status,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate,
-            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        log.debug("[TicketController] GET /api/orders - status='{}', fromDate='{}', toDate='{}'", status, fromDate,
-                toDate);
-        return ResponseEntity.ok(ticketService.findOrders(status, fromDate, toDate, pageable));
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
+            Authentication authentication) {
+        log.debug("[TicketController] GET /api/orders - usuario='{}', status='{}', fromDate='{}', toDate='{}'",
+                authentication.getName(), status, fromDate, toDate);
+        return ResponseEntity.ok(ticketService.findOrders(authentication.getName(), status, fromDate, toDate, pageable));
     }
 
     @GetMapping("/api/tickets/my")

@@ -27,6 +27,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -51,7 +54,7 @@ public class EventServiceImpl implements EventService {
 
         log.debug("[Event] findAll -> {} eventos encontrados en página {} (includeInactive={})",
                 events.getNumberOfElements(), pageable.getPageNumber(), includeInactive);
-        return events.map(this::toSummaryDto);
+        return mapToSummaryPage(events);
     }
 
     @Override
@@ -68,7 +71,7 @@ public class EventServiceImpl implements EventService {
                 : eventRepository.findByOrganizerIdAndActiveTrue(organizer.getId(), pageable);
 
         log.debug("[Event] findByOrganizer -> {} eventos propios encontrados", events.getNumberOfElements());
-        return events.map(this::toSummaryDto);
+        return mapToSummaryPage(events);
     }
 
     @Override
@@ -306,7 +309,7 @@ public class EventServiceImpl implements EventService {
         }
     }
 
-    private EventSummaryResponseDto toSummaryDto(Event event) {
+    private EventSummaryResponseDto toSummaryDto(Event event, EventAvailability availability) {
         return new EventSummaryResponseDto(
                 event.getId(),
                 event.getTitle(),
@@ -319,8 +322,31 @@ public class EventServiceImpl implements EventService {
                 event.getBannerUrl(),
                 event.getCategory() != null ? event.getCategory().getName() : null,
                 event.getStatus(),
-                event.isActive()
+                event.isActive(),
+                availability != null ? availability.availableTickets() : 0,
+                availability != null ? availability.minPrice() : null
         );
+    }
+
+    /**
+     * Convierte una pagina de eventos a DTOs de resumen incluyendo, en una sola consulta,
+     * la disponibilidad total y el precio minimo de las tarifas activas de cada evento.
+     */
+    private Page<EventSummaryResponseDto> mapToSummaryPage(Page<Event> events) {
+        List<Long> eventIds = events.getContent().stream().map(Event::getId).toList();
+        Map<Long, EventAvailability> availabilityByEvent = eventIds.isEmpty()
+                ? Map.of()
+                : ticketTypeRepository.summarizeAvailabilityByEventIds(eventIds).stream()
+                        .collect(Collectors.toMap(
+                                row -> ((Number) row[0]).longValue(),
+                                row -> new EventAvailability(
+                                        ((Number) row[1]).intValue(),
+                                        row[2] != null ? ((Number) row[2]).doubleValue() : null)));
+
+        return events.map(event -> toSummaryDto(event, availabilityByEvent.get(event.getId())));
+    }
+
+    private record EventAvailability(int availableTickets, Double minPrice) {
     }
 
     private EventDetailResponseDto toDetailDto(Event event) {

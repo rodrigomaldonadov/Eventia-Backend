@@ -17,7 +17,7 @@ public interface TicketService {
 
     List<TicketResponseDto> findMyTickets(String userEmail);
 
-    Page<OrderResponseDto> findOrders(OrderStatus status, LocalDate fromDate, LocalDate toDate, Pageable pageable);
+    Page<OrderResponseDto> findOrders(String userEmail, OrderStatus status, LocalDate fromDate, LocalDate toDate, Pageable pageable);
 
     TicketResponseDto nominate(Long ticketId, NominateTicketRequestDto request, String userEmail);
 }

@@ -177,11 +177,11 @@ public class TicketServiceImpl implements TicketService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<OrderResponseDto> findOrders(OrderStatus status, LocalDate fromDate, LocalDate toDate,
+    public Page<OrderResponseDto> findOrders(String userEmail, OrderStatus status, LocalDate fromDate, LocalDate toDate,
             Pageable pageable) {
         LocalDateTime fromDateTime = fromDate != null ? fromDate.atStartOfDay() : null;
         LocalDateTime toDateTime = toDate != null ? toDate.atTime(LocalTime.MAX) : null;
-        return orderRepository.findAllFiltered(status, fromDateTime, toDateTime, pageable)
+        return orderRepository.findAllFilteredByUser(userEmail, status, fromDateTime, toDateTime, pageable)
                 .map(this::toOrderDto);
     }
 

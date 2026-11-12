@@ -17,5 +17,7 @@ public record EventSummaryResponseDto(
         String bannerUrl,
         String categoryName,
         EventStatus status,
-        boolean active) {
+        boolean active,
+        Integer availableTickets,
+        Double minPrice) {
 }

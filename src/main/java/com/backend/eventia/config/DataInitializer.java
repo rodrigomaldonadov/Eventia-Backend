@@ -9,6 +9,7 @@ import com.backend.eventia.model.TicketType;
 import com.backend.eventia.model.User;
 import com.backend.eventia.model.enums.EventStatus;
 import com.backend.eventia.model.enums.OrderStatus;
+import com.backend.eventia.model.enums.TicketStatus;
 import com.backend.eventia.model.enums.UserRole;
 import com.backend.eventia.repository.CategoryRepository;
 import com.backend.eventia.repository.EventRepository;
@@ -177,7 +178,13 @@ public class DataInitializer {
         ticketTypeRepository.save(ticketType);
 
         for (int i = 0; i < quantity; i++) {
-            ticketRepository.save(Ticket.builder().orderDetail(detail).build());
+            ticketRepository.save(Ticket.builder()
+                    .orderDetail(detail)
+                    .status(TicketStatus.VALID)
+                    .nombre(customer.getFirstName() + " " + customer.getLastName())
+                    .dni(customer.getDni())
+                    .qrCode(java.util.UUID.randomUUID().toString())
+                    .build());
         }
 
         log.info("[DataInitializer] Orden de prueba creada para '{}' con {} entradas en '{}'",

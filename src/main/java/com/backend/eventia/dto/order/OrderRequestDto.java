@@ -21,8 +21,14 @@ public record OrderRequestDto(
 
             @NotNull(message = "La cantidad es obligatoria")
             @Positive(message = "La cantidad debe ser mayor a cero")
-            Integer quantity
+            Integer quantity,
+
+            String nombre,
+            String dni,
+            List<Attendee> attendees
     ) {
+        public record Attendee(String nombre, String dni) {
+        }
     }
 
 }

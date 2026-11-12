@@ -31,6 +31,15 @@ public class Ticket {
     @Builder.Default
     private TicketStatus status = TicketStatus.VALID;
 
+    @Column(name = "holder_name")
+    private String nombre;
+
+    @Column(name = "holder_dni", length = 20)
+    private String dni;
+
+    @Column(name = "qr_code", unique = true, nullable = false, length = 64)
+    private String qrCode;
+
     @Column(name = "redeemed_at")
     private LocalDateTime redeemedAt;
 
@@ -45,4 +54,14 @@ public class Ticket {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_order_detail", nullable = false)
     private OrderDetail orderDetail;
+
+    @PrePersist
+    public void prePersist() {
+        if (this.qrCode == null || this.qrCode.isBlank()) {
+            this.qrCode = java.util.UUID.randomUUID().toString();
+        }
+        if (this.status == null) {
+            this.status = TicketStatus.VALID;
+        }
+    }
 }

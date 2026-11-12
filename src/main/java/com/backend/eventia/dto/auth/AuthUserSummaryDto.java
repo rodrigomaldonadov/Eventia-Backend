@@ -9,6 +9,7 @@ public record AuthUserSummaryDto(
         String email,
         String role,
         TipoDocumento documentType,
+        String dni,
         String cellphone
 ) {
 }

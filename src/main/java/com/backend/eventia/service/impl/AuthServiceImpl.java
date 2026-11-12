@@ -129,6 +129,7 @@ public class AuthServiceImpl implements AuthService {
                 user.getEmail(),
                 user.getRole().name(),
                 user.getDocumentType(),
+                user.getDni(),
                 user.getCellphone()
         );
 
@@ -157,6 +158,7 @@ public class AuthServiceImpl implements AuthService {
                 user.getEmail(),
                 user.getRole().name(),
                 user.getDocumentType(),
+                user.getDni(),
                 user.getCellphone()
         );
     }

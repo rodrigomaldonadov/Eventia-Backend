@@ -10,6 +10,7 @@ public record AuthUserResponseDto(
         String email,
         String role,
         TipoDocumento documentType,
+        String dni,
         String cellphone
 ) {
 }
